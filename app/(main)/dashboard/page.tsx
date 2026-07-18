@@ -66,14 +66,12 @@ export default function DashboardPage() {
             icon={<Plus className="size-5" />}
             title="Utwórz fiszki"
             description="Ręcznie lub z AI"
-            accent="primary"
           />
           <ActionCard
             href="/tutor"
             icon={<Lightbulb className="size-5" />}
             title="AI Tutor"
             description="Rozwiąż zadanie krok po kroku"
-            accent="brand"
           />
         </div>
       </section>
@@ -114,26 +112,18 @@ function ActionCard({
   icon,
   title,
   description,
-  accent,
 }: {
   href: string
   icon: React.ReactNode
   title: string
   description: string
-  accent: 'primary' | 'brand'
 }) {
   return (
     <Link
       href={href}
       className="group flex flex-1 items-center gap-4 rounded-3xl border border-border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
     >
-      <span
-        className={
-          accent === 'brand'
-            ? 'flex size-11 items-center justify-center rounded-2xl bg-brand/15 text-brand'
-            : 'flex size-11 items-center justify-center rounded-2xl bg-primary/15 text-primary'
-        }
-      >
+      <span className="flex size-11 items-center justify-center rounded-2xl bg-brand/15 text-brand">
         {icon}
       </span>
       <span>

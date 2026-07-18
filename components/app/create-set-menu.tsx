@@ -17,7 +17,7 @@ export function CreateSetMenu() {
         onClick={() => setOpen((o) => !o)}
         aria-label="Utwórz nowy zestaw fiszek"
         aria-expanded={open}
-        className="flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-transform hover:scale-105 hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex size-9 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-sm transition-transform hover:scale-105 hover:bg-brand/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Plus className="size-5" />
       </button>
@@ -30,7 +30,7 @@ export function CreateSetMenu() {
             onClick={close}
             className="flex items-start gap-3 rounded-xl px-2.5 py-2.5 transition-colors hover:bg-accent"
           >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand/15 text-brand">
               <PencilLine className="size-4" />
             </span>
             <span>
