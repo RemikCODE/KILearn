@@ -16,7 +16,7 @@ export function NewSetButton() {
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="flex h-10 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex h-10 items-center gap-2 rounded-xl bg-brand px-4 text-sm font-semibold text-brand-foreground shadow-sm transition-colors hover:bg-brand/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Plus className="size-4" />
         Nowy zestaw
@@ -30,7 +30,7 @@ export function NewSetButton() {
             onClick={close}
             className="flex items-start gap-3 rounded-xl px-2.5 py-2.5 transition-colors hover:bg-accent"
           >
-            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand/15 text-brand">
               <PencilLine className="size-4" />
             </span>
             <span>
