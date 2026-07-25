@@ -85,6 +85,11 @@ function StudySession({ set, onClose }: { set: FlashcardSet; onClose: () => void
   const total = set.cards.length
 
   function go(delta: number) {
+    var t = index + delta
+    if (t < 0 || t >= total) {
+      return
+    }
+
     setFlipped(false)
     setIndex((i) => (i + delta + total) % total)
   }
