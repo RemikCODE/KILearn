@@ -1,11 +1,14 @@
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { FlashcardSetView } from '@/components/app/flashcard-set-view'
-import { flashcardSets } from '@/lib/mock-data'
+import { useFlashcardSets } from '@/hooks/use-flashcard-sets'
 
 export function FlashcardSetPage() {
   const { id } = useParams<{ id: string }>()
-  const set = flashcardSets.find((s) => s.id === id)
+  const { getById, loading } = useFlashcardSets()
+  const set = id ? getById(id) : undefined
+
+  if (loading) return null
 
   if (!set) {
     return (

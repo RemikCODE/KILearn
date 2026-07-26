@@ -1,10 +1,19 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, Layers, Lightbulb, PlayCircle, Plus } from 'lucide-react'
-import { dashboardStats, flashcardSets, mockUser } from '@/lib/mock-data'
+import { ArrowRight, Layers, Lightbulb, PlayCircle, Plus, Sparkles } from 'lucide-react'
+import { dashboardStats, mockUser } from '@/lib/mock-data'
+import { useFlashcardSets } from '@/hooks/use-flashcard-sets'
 
 export function DashboardPage() {
-  const recent = flashcardSets[0]
+  const { sets } = useFlashcardSets()
   const firstName = mockUser.name.split(' ')[0]
+
+  // "Ostatnio używany" zestaw: ten z najnowszym lastStudiedAt, a jeśli
+  // nikt jeszcze się nie uczył — po prostu najnowszy utworzony.
+  const recent = [...sets].sort((a, b) => {
+    const aTime = a.lastStudiedAt ?? a.createdAt
+    const bTime = b.lastStudiedAt ?? b.createdAt
+    return bTime.localeCompare(aTime)
+  })[0]
 
   return (
     <div className="flex flex-col gap-8">
@@ -30,35 +39,39 @@ export function DashboardPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <Link
-          to={`/flashcards/${recent.id}`}
-          className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg lg:col-span-2"
-        >
-          <div className="flex items-start justify-between">
-            <div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/15 px-3 py-1 text-xs font-medium text-brand">
-                <PlayCircle className="size-3.5" />
-                Kontynuuj naukę
+        {recent ? (
+          <Link
+            to={`/flashcards/${recent.id}`}
+            className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg lg:col-span-2"
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-brand/15 px-3 py-1 text-xs font-medium text-brand">
+                  <PlayCircle className="size-3.5" />
+                  Kontynuuj naukę
+                </span>
+                <h2 className="mt-4 text-xl font-semibold text-card-foreground">{recent.title}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {recent.cards.length} fiszek
+                  {recent.lastStudiedAt
+                    ? ` · ostatnio ${new Date(recent.lastStudiedAt).toLocaleDateString('pl-PL')}`
+                    : ''}
+                </p>
+              </div>
+              <span className="flex size-12 items-center justify-center rounded-2xl bg-brand text-brand-foreground transition-transform group-hover:scale-110">
+                <ArrowRight className="size-5" />
               </span>
-              <h2 className="mt-4 text-xl font-semibold text-card-foreground">{recent.title}</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                {recent.cardCount} fiszek · ostatnio {recent.lastStudied}
-              </p>
             </div>
-            <span className="flex size-12 items-center justify-center rounded-2xl bg-brand text-brand-foreground transition-transform group-hover:scale-110">
-              <ArrowRight className="size-5" />
+          </Link>
+        ) : (
+          <div className="flex flex-col items-start justify-center gap-2 rounded-3xl border border-dashed border-border bg-card/50 p-6 lg:col-span-2">
+            <span className="flex size-11 items-center justify-center rounded-2xl bg-brand/15 text-brand">
+              <Sparkles className="size-5" />
             </span>
+            <p className="font-medium text-card-foreground">Nie masz jeszcze żadnych zestawów</p>
+            <p className="text-sm text-muted-foreground">Utwórz pierwszy zestaw, żeby zacząć naukę.</p>
           </div>
-          <div className="mt-6">
-            <div className="mb-1.5 flex items-center justify-between text-xs text-muted-foreground">
-              <span>Postęp zestawu</span>
-              <span>68%</span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-muted">
-              <div className="h-full w-[68%] rounded-full bg-brand" />
-            </div>
-          </div>
-        </Link>
+        )}
 
         <div className="flex flex-col gap-4">
           <ActionCard
@@ -78,33 +91,35 @@ export function DashboardPage() {
         </div>
       </section>
 
-      <section>
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-foreground">Twoje zestawy</h2>
-          <Link to="/flashcards" className="text-sm font-medium text-foreground/80 hover:text-foreground">
-            Zobacz wszystkie
-          </Link>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {flashcardSets.slice(0, 3).map((set) => (
-            <Link
-              key={set.id}
-              to={`/flashcards/${set.id}`}
-              className="group flex items-center gap-3 rounded-2xl border border-border bg-card/80 p-4 backdrop-blur-sm transition-colors hover:bg-card"
-            >
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand/15 text-brand">
-                <Layers className="size-5" />
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-medium text-card-foreground">
-                  {set.title}
-                </span>
-                <span className="block text-xs text-muted-foreground">{set.cardCount} fiszek</span>
-              </span>
+      {sets.length > 0 && (
+        <section>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-foreground">Twoje zestawy</h2>
+            <Link to="/flashcards" className="text-sm font-medium text-foreground/80 hover:text-foreground">
+              Zobacz wszystkie
             </Link>
-          ))}
-        </div>
-      </section>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {sets.slice(0, 3).map((set) => (
+              <Link
+                key={set.id}
+                to={`/flashcards/${set.id}`}
+                className="group flex items-center gap-3 rounded-2xl border border-border bg-card/80 p-4 backdrop-blur-sm transition-colors hover:bg-card"
+              >
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand/15 text-brand">
+                  <Layers className="size-5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium text-card-foreground">
+                    {set.title}
+                  </span>
+                  <span className="block text-xs text-muted-foreground">{set.cards.length} fiszek</span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   )
 }

@@ -5,6 +5,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   Check,
+  ChevronDown,
   ImagePlus,
   PencilLine,
   Plus,
@@ -12,6 +13,10 @@ import {
   Trash2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useCategories } from '@/hooks/use-categories'
+import { useFlashcardSets } from '@/hooks/use-flashcard-sets'
+import { CategoryPopup } from '@/components/app/category-popup'
+import { useOutsideClick } from '@/hooks/use-outside-click'
 
 type Row = { term: string; definition: string }
 
@@ -28,6 +33,28 @@ export function NewSetView() {
   const [searchParams] = useSearchParams()
   const initialMode = searchParams.get('mode') === 'ai' ? 'ai' : 'manual'
   const [mode, setMode] = useState<'manual' | 'ai'>(initialMode)
+
+  const { categories, createCategory } = useCategories()
+  const { createSet } = useFlashcardSets()
+
+  const [title, setTitle] = useState('')
+  const [categoryId, setCategoryId] = useState<string | null>(null)
+  const [categoryPickerOpen, setCategoryPickerOpen] = useState(false)
+  const [categoryPopupOpen, setCategoryPopupOpen] = useState(false)
+
+  const selectedCategory = categories.find((c) => c.id === categoryId) ?? null
+  const categoryPickerRef = useOutsideClick<HTMLDivElement>(categoryPickerOpen, () =>
+    setCategoryPickerOpen(false),
+  )
+
+  async function handleSave(rows: Row[]) {
+    await createSet({
+      title,
+      categoryId,
+      cards: rows,
+    })
+    navigate('/flashcards')
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -55,7 +82,77 @@ export function NewSetView() {
         </ModeTab>
       </div>
 
-      {mode === 'manual' ? <ManualForm onDone={() => navigate('/flashcards')} /> : <AiForm onDone={() => navigate('/flashcards')} />}
+      <div className="flex flex-col gap-4 sm:max-w-md">
+        <SetTitleInput value={title} onChange={setTitle} />
+
+        <div className="relative" ref={categoryPickerRef}>
+          <button
+            type="button"
+            onClick={() => setCategoryPickerOpen((o) => !o)}
+            className="flex h-11 w-full items-center justify-between rounded-xl border border-border bg-card px-3.5 text-sm text-card-foreground shadow-sm transition-colors hover:bg-accent"
+          >
+            <span className={selectedCategory ? 'text-card-foreground' : 'text-muted-foreground'}>
+              {selectedCategory ? selectedCategory.name : 'Bez kategorii'}
+            </span>
+            <ChevronDown className="size-4 text-muted-foreground" />
+          </button>
+
+          {categoryPickerOpen && (
+            <div className="absolute z-30 mt-2 w-full overflow-hidden rounded-2xl border border-border bg-popover p-1.5 text-popover-foreground shadow-xl shadow-black/20">
+              <button
+                type="button"
+                onClick={() => {
+                  setCategoryId(null)
+                  setCategoryPickerOpen(false)
+                }}
+                className="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm hover:bg-accent"
+              >
+                Bez kategorii
+              </button>
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() => {
+                    setCategoryId(category.id)
+                    setCategoryPickerOpen(false)
+                  }}
+                  className="flex w-full items-center rounded-xl px-3 py-2 text-left text-sm hover:bg-accent"
+                >
+                  {category.name}
+                </button>
+              ))}
+              <div className="my-1 h-px bg-border" />
+              <button
+                type="button"
+                onClick={() => {
+                  setCategoryPickerOpen(false)
+                  setCategoryPopupOpen(true)
+                }}
+                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium text-brand hover:bg-accent"
+              >
+                <Plus className="size-4" />
+                Utwórz nową kategorię
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {mode === 'manual' ? (
+        <ManualForm onSave={handleSave} />
+      ) : (
+        <AiForm onSave={handleSave} />
+      )}
+
+      <CategoryPopup
+        open={categoryPopupOpen}
+        onClose={() => setCategoryPopupOpen(false)}
+        onCreate={async (name) => {
+          const created = await createCategory(name)
+          setCategoryId(created.id)
+        }}
+      />
     </div>
   )
 }
@@ -86,16 +183,18 @@ function ModeTab({
   )
 }
 
-function SetTitleInput() {
+function SetTitleInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
     <input
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
       placeholder="Nazwa zestawu, np. Angielski — Rozdział 5"
       className="h-12 w-full rounded-2xl border border-border bg-card px-4 text-base font-medium text-card-foreground shadow-sm placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
     />
   )
 }
 
-function ManualForm({ onDone }: { onDone: () => void }) {
+function ManualForm({ onSave }: { onSave: (rows: Row[]) => void }) {
   const [rows, setRows] = useState<Row[]>([
     { term: '', definition: '' },
     { term: '', definition: '' },
@@ -110,12 +209,10 @@ function ManualForm({ onDone }: { onDone: () => void }) {
     <form
       onSubmit={(e) => {
         e.preventDefault()
-        onDone()
+        onSave(rows)
       }}
       className="flex flex-col gap-4"
     >
-      <SetTitleInput />
-
       <div className="flex flex-col gap-2">
         {rows.map((row, i) => (
           <div key={i} className="flex items-center gap-2 rounded-2xl border border-border bg-card p-3 shadow-sm">
@@ -168,13 +265,11 @@ function ManualForm({ onDone }: { onDone: () => void }) {
   )
 }
 
-function AiForm({ onDone }: { onDone: () => void }) {
+function AiForm({ onSave }: { onSave: (rows: Row[]) => void }) {
   const [generated, setGenerated] = useState<Row[] | null>(null)
 
   return (
     <div className="flex flex-col gap-4">
-      <SetTitleInput />
-
       {!generated ? (
         <>
           <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed border-border bg-card/70 px-6 py-12 text-center backdrop-blur-sm transition-colors hover:bg-card">
@@ -214,10 +309,16 @@ function AiForm({ onDone }: { onDone: () => void }) {
                 </span>
                 <input
                   defaultValue={row.term}
+                  onChange={(e) =>
+                    setGenerated((g) => g?.map((r, idx) => (idx === i ? { ...r, term: e.target.value } : r)) ?? null)
+                  }
                   className="h-10 flex-1 rounded-xl border border-input bg-background px-3 text-sm text-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
                 />
                 <input
                   defaultValue={row.definition}
+                  onChange={(e) =>
+                    setGenerated((g) => g?.map((r, idx) => (idx === i ? { ...r, definition: e.target.value } : r)) ?? null)
+                  }
                   className="h-10 flex-1 rounded-xl border border-input bg-background px-3 text-sm text-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
                 />
                 <button
@@ -242,7 +343,7 @@ function AiForm({ onDone }: { onDone: () => void }) {
             </button>
             <button
               type="button"
-              onClick={onDone}
+              onClick={() => onSave(generated)}
               className="flex h-11 items-center gap-2 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
             >
               <Check className="size-4" />

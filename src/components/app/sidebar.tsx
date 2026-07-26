@@ -1,6 +1,7 @@
 'use client'
 
-import { Link, useLocation } from 'react-router-dom'
+import { useMemo, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   Bell,
   Folder,
@@ -8,14 +9,19 @@ import {
   Layers,
   Lightbulb,
   Plus,
+  Search,
   X,
 } from 'lucide-react'
-import { folders } from '@/lib/mock-data'
+import { useCategories } from '@/hooks/use-categories'
+import { CategoryPopup } from '@/components/app/category-popup'
+import { notifications } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
+
+const unreadCount = notifications.filter((n) => n.unread).length
 
 const primaryNav = [
   { href: '/dashboard', label: 'Strona główna', icon: Home },
-  { href: '/notifications', label: 'Powiadomienia', icon: Bell, badge: 2 },
+  { href: '/notifications', label: 'Powiadomienia', icon: Bell, badge: unreadCount || undefined },
 ]
 
 const studyNav = [
@@ -25,9 +31,24 @@ const studyNav = [
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = useLocation().pathname
+  const navigate = useNavigate()
+  const { categories, createCategory } = useCategories()
+  const [query, setQuery] = useState('')
+  const [popupOpen, setPopupOpen] = useState(false)
 
   const isActive = (href: string) =>
     pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+
+  const filteredCategories = useMemo(() => {
+    const q = query.trim().toLowerCase()
+    if (!q) return categories
+    return categories.filter((c) => c.name.toLowerCase().includes(q))
+  }, [categories, query])
+
+  function goToCategory(categoryId: string) {
+    onClose()
+    navigate(`/flashcards?category=${categoryId}`)
+  }
 
   return (
     <>
@@ -73,11 +94,24 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
               Twoje foldery
             </span>
           </div>
+
+          {categories.length > 3 && (
+            <div className="relative mb-2 px-1">
+              <Search className="pointer-events-none absolute top-1/2 left-4 size-3.5 -translate-y-1/2 text-panel-muted" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Szukaj kategorii..."
+                className="h-9 w-full rounded-lg border border-panel-border bg-panel-accent/30 pl-9 pr-3 text-xs text-panel-foreground placeholder:text-panel-muted focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
+              />
+            </div>
+          )}
+
           <ul className="flex flex-col gap-1">
             <li>
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => setPopupOpen(true)}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-panel-muted transition-colors hover:bg-panel-accent hover:text-panel-foreground"
               >
                 <span className="flex size-5 items-center justify-center rounded-md border border-dashed border-current">
@@ -86,21 +120,25 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
                 Nowy folder
               </button>
             </li>
-            {folders.map((folder) => (
-              <li key={folder.id}>
-                <Link
-                  to="/flashcards"
-                  onClick={onClose}
-                  className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm transition-colors hover:bg-panel-accent"
+            {filteredCategories.map((category) => (
+              <li key={category.id}>
+                <button
+                  type="button"
+                  onClick={() => goToCategory(category.id)}
+                  className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm transition-colors hover:bg-panel-accent"
                 >
                   <span className="flex items-center gap-3">
                     <Folder className="size-4 text-brand" />
-                    {folder.name}
+                    {category.name}
                   </span>
-                  <span className="text-xs text-panel-muted">{folder.setCount}</span>
-                </Link>
+                </button>
               </li>
             ))}
+            {categories.length === 0 && (
+              <li className="px-3 py-2 text-xs text-panel-muted">
+                Brak kategorii — utwórz pierwszą powyżej.
+              </li>
+            )}
           </ul>
 
           <div className="my-4 h-px bg-panel-border" />
@@ -114,6 +152,14 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
           </ul>
         </nav>
       </aside>
+
+      <CategoryPopup
+        open={popupOpen}
+        onClose={() => setPopupOpen(false)}
+        onCreate={async (name) => {
+          await createCategory(name)
+        }}
+      />
     </>
   )
 }

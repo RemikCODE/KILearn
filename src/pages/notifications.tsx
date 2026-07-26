@@ -1,6 +1,7 @@
 import { Bell, Sparkles, Trophy } from 'lucide-react'
 import { PageHeader } from '@/components/app/page-header'
-import { notifications, type AppNotification } from '@/lib/mock-data'
+import { notifications } from '@/lib/mock-data'
+import type { AppNotification } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 const iconMap: Record<AppNotification['type'], React.ComponentType<{ className?: string }>> = {
@@ -16,6 +17,18 @@ export function NotificationsPage() {
         title="Powiadomienia"
         description="Przypomnienia o powtórkach, gotowe fiszki z AI i Twoje osiągnięcia."
       />
+
+      {notifications.length === 0 && (
+        <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
+          <span className="flex size-14 items-center justify-center rounded-2xl bg-brand/15 text-brand">
+            <Bell className="size-7" />
+          </span>
+          <p className="font-medium text-card-foreground">Brak powiadomień</p>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            Przypomnienia o powtórkach i gotowe fiszki z AI pojawią się tutaj.
+          </p>
+        </div>
+      )}
 
       <ul className="flex flex-col gap-2">
         {notifications.map((n) => {
