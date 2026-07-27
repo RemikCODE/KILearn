@@ -12,7 +12,6 @@ import {
   PencilLine,
   PlayCircle,
   RotateCcw,
-  Sparkles,
   Trash2,
   X,
 } from 'lucide-react'
@@ -229,6 +228,11 @@ function StudySession({ set, onClose }: { set: FlashcardSet; onClose: () => void
   const [flipped, setFlipped] = useState(false)
   const [revealed, setRevealed] = useState(false) // KILearn: czy pokazano odpowiedź po "Zatwierdź"
 
+  // Liczniki bieżącej sesji ("Umiem" / "Powtórzę") — czysto informacyjne,
+  // nieprzechowywane między sesjami, tylko żeby widzieć postęp na żywo.
+  const [correctCount, setCorrectCount] = useState(0)
+  const [wrongCount, setWrongCount] = useState(0)
+
   const total = set.cards.length
   const trackingOn = progress.progressTrackingEnabled
 
@@ -249,6 +253,8 @@ function StudySession({ set, onClose }: { set: FlashcardSet; onClose: () => void
 
   function markAndAdvance(result: 'correct' | 'wrong') {
     if (!currentCard) return
+    if (result === 'correct') setCorrectCount((n) => n + 1)
+    else setWrongCount((n) => n + 1)
     progress.markResult(currentCard.id, result)
     progress.advance()
     setFlipped(false)
@@ -261,11 +267,27 @@ function StudySession({ set, onClose }: { set: FlashcardSet; onClose: () => void
     <div className="fixed inset-0 z-50 flex flex-col bg-background/95 backdrop-blur-md">
       <div className="flex h-16 items-center justify-between border-b border-border px-4 sm:px-6">
         <span className="text-sm font-medium text-foreground">{set.title}</span>
-        {!isCompleted && (
-          <span className="text-sm text-muted-foreground">
-            {activeIndex + 1} / {activeIds.length}
-          </span>
-        )}
+
+        <div className="flex items-center gap-4">
+          {trackingOn && (correctCount > 0 || wrongCount > 0) && (
+            <span className="flex items-center gap-3 text-xs font-medium">
+              <span className="flex items-center gap-1 text-brand">
+                <Check className="size-3.5" />
+                {correctCount}
+              </span>
+              <span className="flex items-center gap-1 text-destructive">
+                <X className="size-3.5" />
+                {wrongCount}
+              </span>
+            </span>
+          )}
+          {!isCompleted && (
+            <span className="text-sm text-muted-foreground">
+              {activeIndex + 1} / {activeIds.length}
+            </span>
+          )}
+        </div>
+
         <div className="flex items-center gap-2">
           <StudySettingsMenu
             mode={progress.mode}
@@ -279,6 +301,8 @@ function StudySession({ set, onClose }: { set: FlashcardSet; onClose: () => void
               setFreeIndex(0)
               setFlipped(false)
               setRevealed(false)
+              setCorrectCount(0)
+              setWrongCount(0)
             }}
           />
           <button
@@ -299,21 +323,15 @@ function StudySession({ set, onClose }: { set: FlashcardSet; onClose: () => void
               <Check className="size-8" />
             </span>
             <h2 className="text-xl font-semibold text-foreground">Ukończyłeś zestaw!</h2>
-            <p className="text-sm text-muted-foreground">Wszystkie fiszki zostały opanowane.</p>
+            <p className="text-sm text-muted-foreground">
+              Umiałeś {correctCount} z {correctCount + wrongCount > 0 ? correctCount + wrongCount : total} fiszek za pierwszym razem.
+            </p>
             <button
               type="button"
-              onClick={()=>{
-                progress.reset()
-                setFreeIndex(0)
-                setFlipped(false)
-                setRevealed(false)
-                progress.isCompleted = false
-                console.log(isCompleted)
-                onClose()
-              }}
+              onClick={onClose}
               className="mt-2 flex h-11 items-center gap-2 rounded-xl bg-brand px-6 text-sm font-semibold text-brand-foreground shadow-sm transition-colors hover:bg-brand/90"
             >
-              Zakończ 
+              Zakończ
             </button>
           </div>
         ) : !currentCard ? null : progress.mode === 'normal' ? (

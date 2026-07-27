@@ -7,8 +7,6 @@ export function DashboardPage() {
   const { sets } = useFlashcardSets()
   const firstName = mockUser.name.split(' ')[0]
 
-  // "Ostatnio używany" zestaw: ten z najnowszym lastStudiedAt, a jeśli
-  // nikt jeszcze się nie uczył — po prostu najnowszy utworzony.
   const recent = [...sets].sort((a, b) => {
     const aTime = a.lastStudiedAt ?? a.createdAt
     const bTime = b.lastStudiedAt ?? b.createdAt

@@ -44,11 +44,29 @@ function saveProgress(setId: string, data: StudyProgressData) {
   localStorage.setItem(storageKey(setId), JSON.stringify(data))
 }
 
+// Stan "świeżo po ukończeniu": wraca do first-pass i czyści wyniki, ale
+// ZACHOWUJE wybrane przez użytkownika mode/direction/progressTrackingEnabled
+// — reset dotyczy tylko postępu, nie preferencji nauki.
+function freshPass(d: StudyProgressData): StudyProgressData {
+  return { ...d, currentIndex: 0, results: {}, phase: 'first-pass' }
+}
+
 export function useStudyProgress(setId: string, allCardIds: string[]) {
   const [data, setData] = useState<StudyProgressData>(() => loadProgress(setId))
 
+  // Przy (ponownym) wejściu w sesję nauki danego zestawu: jeśli poprzedni
+  // stan to już ukończony przebieg (faza powtórki bez nic do powtórzenia),
+  // od razu zaczynamy czysto. Dzięki temu "Rozpocznij naukę" zawsze działa
+  // od razu, bez ręcznego resetu w zębatce po wcześniejszym ukończeniu.
   useEffect(() => {
-    setData(loadProgress(setId))
+    const loaded = loadProgress(setId)
+    const loadedIsCompleted =
+      loaded.phase === 'repeat-wrong' &&
+      allCardIds.filter((id) => loaded.results[id] === 'wrong').length === 0 &&
+      allCardIds.some((id) => loaded.results[id] !== undefined) // było w ogóle cokolwiek ocenione
+
+    setData(loadedIsCompleted ? freshPass(loaded) : loaded)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setId])
 
   useEffect(() => {
@@ -68,7 +86,7 @@ export function useStudyProgress(setId: string, allCardIds: string[]) {
   }, [])
 
   const reset = useCallback(() => {
-    setData((d) => ({ ...d, currentIndex: 0, results: {}, phase: 'first-pass' }))
+    setData((d) => freshPass(d))
   }, [])
 
   // Kolejka fiszek do pokazania w bieżącej fazie: wszystkie, albo tylko te
@@ -77,6 +95,10 @@ export function useStudyProgress(setId: string, allCardIds: string[]) {
     ? allCardIds.filter((id) => data.results[id] === 'wrong')
     : allCardIds
 
+  // Ukończone = byliśmy w fazie powtórki i nic już nie zostało do powtórzenia.
+  // To stan WYŚWIETLANY (żeby pokazać ekran "Ukończyłeś zestaw!"), ale NIE
+  // jest utrwalany — patrz advance(), który od razu po wejściu w ten stan
+  // czyści wyniki, więc kolejne "Rozpocznij naukę" zawsze zaczyna od zera.
   const isCompleted = data.phase === 'repeat-wrong' && activeCardIds.length === 0
 
   const markResult = useCallback((cardId: string, result: CardResult) => {
@@ -103,7 +125,11 @@ export function useStudyProgress(setId: string, allCardIds: string[]) {
       // koniec bieżącej kolejki — sprawdź czy zostały jakieś błędne fiszki
       const stillWrong = allCardIds.filter((id) => d.results[id] === 'wrong')
       if (stillWrong.length === 0) {
-        return { ...d, currentIndex: nextIndex, phase: 'repeat-wrong' } // isCompleted=true (activeCardIds puste)
+        // Zestaw ukończony. Zostajemy w tym stanie (isCompleted=true), żeby
+        // pokazać ekran "Ukończyłeś zestaw!" — same postępy czyścimy dopiero
+        // przy KOLEJNYM wejściu w naukę tego zestawu (patrz efekt wyżej),
+        // żeby ekran ukończenia zdążył się wyświetlić.
+        return { ...d, currentIndex: nextIndex, phase: 'repeat-wrong' }
       }
 
       return { ...d, currentIndex: 0, phase: 'repeat-wrong' }
