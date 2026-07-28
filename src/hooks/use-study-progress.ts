@@ -108,6 +108,14 @@ export function useStudyProgress(setId: string, allCardIds: string[]) {
     }))
   }, [])
 
+  const markStatus = useCallback((cardId: string) => {
+    //sprawdzamy czy karta ma juz wynik i go zwracamy
+
+    if (data.results[cardId] !== undefined) {
+      return data.results[cardId]
+    }
+  }, [data?.results])
+
   // Przechodzi do kolejnej fiszki; jeśli to koniec bieżącej fazy, decyduje
   // czy przejść do powtórki błędnych, czy zakończyć sesję.
   const advance = useCallback(() => {
@@ -147,6 +155,7 @@ export function useStudyProgress(setId: string, allCardIds: string[]) {
     activeCardIds,
     isCompleted,
     markResult,
+    markStatus,
     advance,
     reset,
   }

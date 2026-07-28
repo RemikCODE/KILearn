@@ -253,6 +253,18 @@ function StudySession({ set, onClose }: { set: FlashcardSet; onClose: () => void
 
   function markAndAdvance(result: 'correct' | 'wrong') {
     if (!currentCard) return
+    ////
+    if (progress.markStatus(currentCard.id) === 'wrong' && result === 'correct') {
+      progress.markResult(currentCard.id, result)
+      setCorrectCount((n) => n + 1)
+      setWrongCount((n) => n - 1)
+
+      progress.advance()
+      setFlipped(false)
+      setRevealed(false)
+      return
+    }
+    ////
     if (result === 'correct') setCorrectCount((n) => n + 1)
     else setWrongCount((n) => n + 1)
     progress.markResult(currentCard.id, result)
@@ -271,7 +283,7 @@ function StudySession({ set, onClose }: { set: FlashcardSet; onClose: () => void
         <div className="flex items-center gap-4">
           {trackingOn && (correctCount > 0 || wrongCount > 0) && (
             <span className="flex items-center gap-3 text-xs font-medium">
-              <span className="flex items-center gap-1 text-brand">
+              <span className="flex items-center gap-1 text-positive">
                 <Check className="size-3.5" />
                 {correctCount}
               </span>
@@ -451,9 +463,9 @@ function SessionControls({
         <button
           type="button"
           onClick={onCorrect}
-          className="flex h-12 items-center gap-2 rounded-full bg-brand px-8 text-sm font-semibold text-brand-foreground shadow-sm transition-colors hover:bg-brand/90"
+          className="flex h-12 items-center gap-2 rounded-full bg-brand px-8 text-sm font-semibold text-brand-foreground shadow-sm transition-colors hover:bg-brand/90 border border-positive"
         >
-          <Check className="size-4" />
+          <Check className="size-4 text-positive"/>
           Umiem
         </button>
       </div>
