@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 export type StudyMode = 'normal' | 'kilearn'
 export type StudyDirection = 'term-to-definition' | 'definition-to-term'
@@ -51,8 +51,17 @@ function freshPass(d: StudyProgressData): StudyProgressData {
   return { ...d, currentIndex: 0, results: {}, phase: 'first-pass' }
 }
 
+type UndoSnapshot = Pick<StudyProgressData, 'currentIndex' | 'results' | 'phase'>
+
 export function useStudyProgress(setId: string, allCardIds: string[]) {
   const [data, setData] = useState<StudyProgressData>(() => loadProgress(setId))
+  const undoStackRef = useRef<UndoSnapshot[]>([])
+  const [canUndo, setCanUndo] = useState(false)
+  const dataRef = useRef(data)
+
+  useEffect(() => {
+    dataRef.current = data
+  }, [data])
 
   // Przy (ponownym) wejściu w sesję nauki danego zestawu: jeśli poprzedni
   // stan to już ukończony przebieg (faza powtórki bez nic do powtórzenia),
@@ -86,7 +95,27 @@ export function useStudyProgress(setId: string, allCardIds: string[]) {
   }, [])
 
   const reset = useCallback(() => {
+    undoStackRef.current = []
+    setCanUndo(false)
     setData((d) => freshPass(d))
+  }, [])
+
+  const saveUndoPoint = useCallback(() => {
+    const d = dataRef.current
+    undoStackRef.current.push({
+      currentIndex: d.currentIndex,
+      results: { ...d.results },
+      phase: d.phase,
+    })
+    setCanUndo(true)
+  }, [])
+
+  const undo = useCallback(() => {
+    const prev = undoStackRef.current.pop()
+    if (!prev) return false
+    setCanUndo(undoStackRef.current.length > 0)
+    setData((d) => ({ ...d, ...prev }))
+    return true
   }, [])
 
   // Kolejka fiszek do pokazania w bieżącej fazie: wszystkie, albo tylko te
@@ -158,5 +187,8 @@ export function useStudyProgress(setId: string, allCardIds: string[]) {
     markStatus,
     advance,
     reset,
+    saveUndoPoint,
+    undo,
+    canUndo,
   }
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft,
@@ -12,7 +12,10 @@ import {
   PencilLine,
   PlayCircle,
   RotateCcw,
+  Search,
+  Shuffle,
   Trash2,
+  Undo2,
   X,
 } from 'lucide-react'
 import type { FlashcardSet } from '@/lib/types'
@@ -24,6 +27,7 @@ import { cn } from '@/lib/utils'
 
 export function FlashcardSetView({ set }: { set: FlashcardSet }) {
   const [studying, setStudying] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const navigate = useNavigate()
   const { markStudied, copySet, deleteSet, moveToCategory } = useFlashcardSets()
   const { categories } = useCategories()
@@ -69,6 +73,14 @@ export function FlashcardSetView({ set }: { set: FlashcardSet }) {
       </button>
     </>
   ) : undefined
+
+  const filteredCards = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return set.cards
+    return set.cards.filter(
+      (c) => c.term.toLowerCase().includes(q) || c.definition.toLowerCase().includes(q),
+    )
+  }, [set.cards, searchQuery])
 
   return (
     <div className="flex flex-col gap-6">
@@ -140,18 +152,48 @@ export function FlashcardSetView({ set }: { set: FlashcardSet }) {
       </div>
 
       <div className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold text-foreground/80">Fiszki w zestawie</h2>
-        {set.cards.map((card, i) => (
-          <div
-            key={card.id}
-            className="flex items-center gap-4 rounded-2xl border border-border bg-card/80 p-4 backdrop-blur-sm"
-          >
-            <span className="w-6 shrink-0 text-sm font-medium text-muted-foreground">{i + 1}</span>
-            <span className="flex-1 font-medium text-card-foreground">{card.term}</span>
-            <span className="hidden h-8 w-px bg-border sm:block" />
-            <span className="flex-1 text-sm text-muted-foreground">{card.definition}</span>
-          </div>
-        ))}
+        <label className="text-sm font-semibold text-foreground/80" htmlFor="card-search">
+          Wyszukaj pojęcie
+        </label>
+        <div className="relative">
+          <Search className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            id="card-search"
+            type="search"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Szukaj po pojęciu lub definicji..."
+            className="h-10 w-full rounded-xl border border-border bg-card pl-10 pr-9 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 [&::-webkit-search-cancel-button]:appearance-none"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              aria-label="Wyczyść wyszukiwanie"
+              className="absolute top-1/2 right-3 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <X className="size-3.5" />
+            </button>
+          )}
+        </div>
+        <h2 className="mt-1 text-sm font-semibold text-foreground/80">Fiszki w zestawie</h2>
+        {filteredCards.length === 0 ? (
+          <p className="rounded-2xl border border-border bg-card/80 p-4 text-sm text-muted-foreground">
+            Brak fiszek pasujących do wyszukiwania.
+          </p>
+        ) : (
+          filteredCards.map((card, i) => (
+            <div
+              key={card.id}
+              className="flex items-center gap-4 rounded-2xl border border-border bg-card/80 p-4 backdrop-blur-sm"
+            >
+              <span className="w-6 shrink-0 text-sm font-medium text-muted-foreground">{i + 1}</span>
+              <span className="flex-1 font-medium text-card-foreground">{card.term}</span>
+              <span className="hidden h-8 w-px bg-border sm:block" />
+              <span className="flex-1 text-sm text-muted-foreground">{card.definition}</span>
+            </div>
+          ))
+        )}
       </div>
 
       {studying && <StudySession set={set} onClose={() => setStudying(false)} />}
@@ -217,26 +259,37 @@ function MoveToCategoryList({
   )
 }
 
+function shuffleArray<T>(items: T[]): T[] {
+  const arr = [...items]
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+  }
+  return arr
+}
+
 function StudySession({ set, onClose }: { set: FlashcardSet; onClose: () => void }) {
   const cardIds = set.cards.map((c) => c.id)
-  const progress = useStudyProgress(set.id, cardIds)
+  const [cardOrder, setCardOrder] = useState(() => [...cardIds])
+  const [randomOrderEnabled, setRandomOrderEnabled] = useState(false)
+  const progress = useStudyProgress(set.id, cardOrder)
   const cardsById = new Map(set.cards.map((c) => [c.id, c]))
 
-  // Nauka bez śledzenia postępu: prosta, liniowa nawigacja lokalna,
-  // bez zapamiętywania i bez powtórki błędnych (jak dawniej).
   const [freeIndex, setFreeIndex] = useState(0)
   const [flipped, setFlipped] = useState(false)
-  const [revealed, setRevealed] = useState(false) // KILearn: czy pokazano odpowiedź po "Zatwierdź"
+  const [revealed, setRevealed] = useState(false)
 
-  // Liczniki bieżącej sesji ("Umiem" / "Powtórzę") — czysto informacyjne,
-  // nieprzechowywane między sesjami, tylko żeby widzieć postęp na żywo.
   const [correctCount, setCorrectCount] = useState(0)
   const [wrongCount, setWrongCount] = useState(0)
+  const countsUndoRef = useRef<Array<{ correct: number; wrong: number }>>([])
+  const countsRef = useRef({ correct: 0, wrong: 0 })
+  countsRef.current = { correct: correctCount, wrong: wrongCount }
 
-  const total = set.cards.length
+  const total = cardOrder.length
   const trackingOn = progress.progressTrackingEnabled
 
-  const activeIds = trackingOn ? progress.activeCardIds : cardIds
+
+  const activeIds = trackingOn ? progress.activeCardIds : cardOrder
   const activeIndex = trackingOn ? progress.currentIndex : freeIndex
   const currentCard = activeIds.length > 0 ? cardsById.get(activeIds[activeIndex]) : undefined
 
@@ -244,16 +297,38 @@ function StudySession({ set, onClose }: { set: FlashcardSet; onClose: () => void
   const front = currentCard ? (showTermFirst ? currentCard.term : currentCard.definition) : ''
   const back = currentCard ? (showTermFirst ? currentCard.definition : currentCard.term) : ''
 
+  function handleShuffle() {
+    if (randomOrderEnabled) {
+      setRandomOrderEnabled(false)
+      setCardOrder([...cardIds])
+    } else {
+      setRandomOrderEnabled(true)
+      setCardOrder(shuffleArray(cardIds))
+    }
+    setFreeIndex(0)
+    progress.reset()
+    setFlipped(false)
+    setRevealed(false)
+    setCorrectCount(0)
+    setWrongCount(0)
+    countsUndoRef.current = []
+  }
+
   function goFree(delta: number) {
     const next = freeIndex + delta
-    if (next < 0 || next >= total) return // blokada: nie da się wyjść poza pierwszą/ostatnią fiszkę
+    if (next < 0 || next >= total) return
     setFlipped(false)
     setFreeIndex(next)
   }
 
   function markAndAdvance(result: 'correct' | 'wrong') {
     if (!currentCard) return
-    ////
+
+    if (trackingOn) {
+      progress.saveUndoPoint()
+      countsUndoRef.current.push({ ...countsRef.current })
+    }
+
     if (progress.markStatus(currentCard.id) === 'wrong' && result === 'correct') {
       progress.markResult(currentCard.id, result)
       setCorrectCount((n) => n + 1)
@@ -264,11 +339,22 @@ function StudySession({ set, onClose }: { set: FlashcardSet; onClose: () => void
       setRevealed(false)
       return
     }
-    ////
+
     if (result === 'correct') setCorrectCount((n) => n + 1)
     else setWrongCount((n) => n + 1)
     progress.markResult(currentCard.id, result)
     progress.advance()
+    setFlipped(false)
+    setRevealed(false)
+  }
+
+  function handleUndo() {
+    if (!progress.undo()) return
+    const prevCounts = countsUndoRef.current.pop()
+    if (prevCounts) {
+      setCorrectCount(prevCounts.correct)
+      setWrongCount(prevCounts.wrong)
+    }
     setFlipped(false)
     setRevealed(false)
   }
@@ -310,11 +396,14 @@ function StudySession({ set, onClose }: { set: FlashcardSet; onClose: () => void
             onProgressTrackingChange={progress.setProgressTrackingEnabled}
             onReset={() => {
               progress.reset()
+              setCardOrder([...cardIds])
+              setRandomOrderEnabled(false)
               setFreeIndex(0)
               setFlipped(false)
               setRevealed(false)
               setCorrectCount(0)
               setWrongCount(0)
+              countsUndoRef.current = []
             }}
           />
           <button
@@ -328,7 +417,10 @@ function StudySession({ set, onClose }: { set: FlashcardSet; onClose: () => void
         </div>
       </div>
 
-      <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col justify-center gap-6 px-4 py-8">
+      <div className="mx-auto flex w-full max-w-4xl flex-1 items-center gap-3 px-4 py-8 sm:gap-4">
+        <StudyMiniPanel active={randomOrderEnabled} onShuffle={handleShuffle} />
+
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-6">
         {isCompleted ? (
           <div className="flex flex-col items-center gap-3 text-center">
             <span className="flex size-16 items-center justify-center rounded-3xl bg-brand/15 text-brand">
@@ -348,22 +440,14 @@ function StudySession({ set, onClose }: { set: FlashcardSet; onClose: () => void
           </div>
         ) : !currentCard ? null : progress.mode === 'normal' ? (
           <>
-            <button
-              type="button"
-              onClick={() => setFlipped((f) => !f)}
-              className="group relative flex min-h-64 w-full items-center justify-center rounded-3xl border border-border bg-card p-8 text-center shadow-lg transition-transform hover:-translate-y-0.5"
-            >
-              <span className="absolute top-4 left-4 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                <RotateCcw className="size-3.5" />
-                {flipped ? (showTermFirst ? 'Definicja' : 'Pojęcie') : showTermFirst ? 'Pojęcie' : 'Definicja'}
-              </span>
-              <span className="text-2xl font-semibold text-card-foreground text-balance">
-                {flipped ? back : front}
-              </span>
-              <span className="absolute bottom-4 text-xs text-muted-foreground">
-                Kliknij, aby {flipped ? 'ukryć' : 'pokazać'} odpowiedź
-              </span>
-            </button>
+            <FlipCard
+              flipped={flipped}
+              front={front}
+              back={back}
+              frontLabel={showTermFirst ? 'Pojęcie' : 'Definicja'}
+              backLabel={showTermFirst ? 'Definicja' : 'Pojęcie'}
+              onFlip={() => setFlipped((f) => !f)}
+            />
 
             <SessionControls
               trackingOn={trackingOn}
@@ -424,8 +508,114 @@ function StudySession({ set, onClose }: { set: FlashcardSet; onClose: () => void
             )}
           </>
         )}
+        </div>
+
+        <StudySidePanel
+          showUndo={trackingOn && !isCompleted}
+          canUndo={progress.canUndo}
+          onUndo={handleUndo}
+        />
       </div>
     </div>
+  )
+}
+
+function StudyMiniPanel({ active, onShuffle }: { active: boolean; onShuffle: () => void }) {
+  return (
+    <aside className="flex w-11 shrink-0 flex-col items-center gap-2 rounded-2xl border border-border bg-card/80 p-2 shadow-sm">
+      <button
+        type="button"
+        onClick={onShuffle}
+        aria-label="Losuj kolejność fiszek"
+        aria-pressed={active}
+        title={active ? 'Wyłącz losową kolejność' : 'Włącz losową kolejność'}
+        className={cn(
+          'flex size-9 items-center justify-center rounded-xl transition-colors',
+          active
+            ? 'text-brand'
+            : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+        )}
+      >
+        <Shuffle className="size-4" />
+      </button>
+    </aside>
+  )
+}
+
+function StudySidePanel({
+  showUndo,
+  canUndo,
+  onUndo,
+}: {
+  showUndo: boolean
+  canUndo: boolean
+  onUndo: () => void
+}) {
+  return (
+    <aside className="flex w-11 shrink-0 flex-col items-center gap-2 rounded-2xl border border-border bg-card/80 p-2 shadow-sm">
+      {showUndo && (
+        <button
+          type="button"
+          onClick={onUndo}
+          disabled={!canUndo}
+          aria-label="Cofnij ostatnią ocenę"
+          title="Cofnij"
+          className="flex size-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Undo2 className="size-4" />
+        </button>
+      )}
+    </aside>
+  )
+}
+
+function FlipCard({
+  flipped,
+  front,
+  back,
+  frontLabel,
+  backLabel,
+  onFlip,
+}: {
+  flipped: boolean
+  front: string
+  back: string
+  frontLabel: string
+  backLabel: string
+  onFlip: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onFlip}
+      className="group w-full [perspective:1000px]"
+    >
+      <div
+        className={cn(
+          'relative min-h-64 w-full transition-transform duration-500 [transform-style:preserve-3d]',
+          flipped && '[transform:rotateY(180deg)]',
+        )}
+      >
+        <div className="absolute inset-0 flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-8 text-center shadow-lg [backface-visibility:hidden]">
+          <span className="absolute top-4 left-4 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <RotateCcw className="size-3.5" />
+            {frontLabel}
+          </span>
+          <span className="text-2xl font-semibold text-card-foreground text-balance">{front}</span>
+          
+          <span className="absolute bottom-4 text-xs text-muted-foreground">Kliknij, aby pokazać odpowiedź</span>
+        </div>
+
+        <div className="absolute inset-0 flex flex-col items-center justify-center rounded-3xl border border-border bg-card p-8 text-center shadow-lg [backface-visibility:hidden] [transform:rotateY(180deg)]">
+          <span className="absolute top-4 left-4 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <RotateCcw className="size-3.5" />
+            {backLabel}
+          </span>
+          <span className="text-2xl font-semibold text-card-foreground text-balance">{back}</span>
+          <span className="absolute bottom-4 text-xs text-muted-foreground">Kliknij, aby ukryć odpowiedź</span>
+        </div>
+      </div>
+    </button>
   )
 }
 

@@ -42,7 +42,7 @@ export function TopBar({ onToggleSidebar }: { onToggleSidebar: () => void }) {
         <Link
           to="/premium"
           aria-label="Plany Premium"
-          className="flex size-9 items-center justify-center rounded-full border border-brand/40 bg-brand/10 text-brand transition-colors hover:bg-brand/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex size-9 items-center justify-center rounded-full text-brand transition-colors hover:bg-brand/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <DollarSign className="size-5" />
         </Link>
