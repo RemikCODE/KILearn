@@ -3,6 +3,16 @@
 // tabele w Supabase (id jako string/uuid, ownerId, timestampy ISO), żeby
 // przejście z localStorage na prawdziwy backend nie wymagało przepisywania
 // komponentów, tylko podmianę implementacji hooków/serwisów.
+ 
+export type JSONPunkt ={
+  x: number;
+  y: number;
+  t: number;
+}
+
+export type JSONStroke = {
+  points: JSONPunkt[];
+}
 
 export type User = {
   id: string

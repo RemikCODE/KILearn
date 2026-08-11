@@ -24,6 +24,7 @@ import { useCategories } from '@/hooks/use-categories'
 import { useStudyProgress } from '@/hooks/use-study-progress'
 import { StudySettingsMenu } from '@/components/app/study-settings-menu'
 import { cn } from '@/lib/utils'
+import CanvasDoPisania from '@/components/ui/CanvasDoPisania'
 
 export function FlashcardSetView({ set }: { set: FlashcardSet }) {
   const [studying, setStudying] = useState(false)
@@ -468,9 +469,9 @@ function StudySession({ set, onClose }: { set: FlashcardSet; onClose: () => void
               </span>
               <span className="text-xl font-semibold text-card-foreground text-balance">{front}</span>
 
-              {/* Placeholder canvasu do rozpoznawania pisma odręcznego — bez logiki rozpoznawania na tym etapie. */}
-              <div className="mt-2 flex h-40 w-full max-w-sm items-center justify-center rounded-2xl border-2 border-dashed border-border bg-muted/30 text-xs text-muted-foreground">
-                Canvas do pisania (wkrótce)
+              
+              <div className="mt-2 flex h-40 w-full max-w-sm rounded-2xl border-2 border-dashed border-border bg-muted/30 text-xs text-muted-foreground">
+                <CanvasDoPisania/>
               </div>
 
               {revealed ? (

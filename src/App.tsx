@@ -6,6 +6,7 @@ import { ForgotPasswordPage } from '@/pages/forgot-password'
 import { DashboardPage } from '@/pages/dashboard'
 import { FlashcardsPage } from '@/pages/flashcards'
 import { FlashcardSetPage } from '@/pages/flashcard-set'
+import { FlashcardEditPage } from '@/pages/flashcard-edit'
 import { NewFlashcardSetPage } from '@/pages/new-flashcard-set'
 import { NotificationsPage } from '@/pages/notifications'
 import { PremiumPage } from '@/pages/premium'
@@ -23,6 +24,7 @@ export function App() {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/flashcards" element={<FlashcardsPage />} />
         <Route path="/flashcards/new" element={<NewFlashcardSetPage />} />
+        <Route path="/flashcards/:id/edit" element={<FlashcardEditPage />} />
         <Route path="/flashcards/:id" element={<FlashcardSetPage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/premium" element={<PremiumPage />} />

@@ -8,14 +8,17 @@ import {
   Home,
   Layers,
   Lightbulb,
+  PencilLine,
   Plus,
   Search,
   X,
 } from 'lucide-react'
 import { useCategories } from '@/hooks/use-categories'
 import { CategoryPopup } from '@/components/app/category-popup'
+import { EditCategoryPopup } from '@/components/app/category-popup-edit'
 import { notifications } from '@/lib/mock-data'
 import { cn } from '@/lib/utils'
+import type { Category } from '@/lib/types'
 
 const unreadCount = notifications.filter((n) => n.unread).length
 
@@ -32,9 +35,10 @@ const studyNav = [
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = useLocation().pathname
   const navigate = useNavigate()
-  const { categories, createCategory } = useCategories()
+  const { categories, createCategory, renameCategory, deleteCategory } = useCategories()
   const [query, setQuery] = useState('')
   const [popupOpen, setPopupOpen] = useState(false)
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null)
 
   const isActive = (href: string) =>
     pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
@@ -121,16 +125,24 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
               </button>
             </li>
             {filteredCategories.map((category) => (
-              <li key={category.id}>
+              <li key={category.id} className="flex w-full items-center justify-between gap-2">
                 <button
                   type="button"
                   onClick={() => goToCategory(category.id)}
-                  className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm transition-colors hover:bg-panel-accent"
+                  className="flex flex-1 items-center justify-between rounded-xl px-3 py-2.5 text-sm transition-colors hover:bg-panel-accent"
                 >
                   <span className="flex items-center gap-3">
                     <Folder className="size-4 text-brand" />
-                    {category.name}
+                    <span className="truncate">{category.name}</span>
                   </span>
+                </button>
+
+                <button
+                  onClick={() => setEditingCategory(category)}
+                  type="button"
+                  className="flex size-9 shrink-0 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-accent hover:text-brand"
+                >
+                  <PencilLine className="size-3" />
                 </button>
               </li>
             ))}
@@ -158,6 +170,17 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
         onClose={() => setPopupOpen(false)}
         onCreate={async (name) => {
           await createCategory(name)
+        }}
+      />
+
+      <EditCategoryPopup
+        category={editingCategory}
+        onClose={() => setEditingCategory(null)}
+        onUpdate={async (id, name) => {
+          await renameCategory(id, name)
+        }}
+        onDelete={async (id) => {
+          await deleteCategory(id)
         }}
       />
     </>
