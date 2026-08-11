@@ -264,7 +264,7 @@ function shuffleArray<T>(items: T[]): T[] {
   const arr = [...items]
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
-    ;[arr[i], arr[j]] = [arr[j], arr[i]]
+      ;[arr[i], arr[j]] = [arr[j], arr[i]]
   }
   return arr
 }
@@ -289,7 +289,6 @@ function StudySession({ set, onClose }: { set: FlashcardSet; onClose: () => void
   const total = cardOrder.length
   const trackingOn = progress.progressTrackingEnabled
 
-
   const activeIds = trackingOn ? progress.activeCardIds : cardOrder
   const activeIndex = trackingOn ? progress.currentIndex : freeIndex
   const currentCard = activeIds.length > 0 ? cardsById.get(activeIds[activeIndex]) : undefined
@@ -304,7 +303,19 @@ function StudySession({ set, onClose }: { set: FlashcardSet; onClose: () => void
       setCardOrder([...cardIds])
     } else {
       setRandomOrderEnabled(true)
-      setCardOrder(shuffleArray(cardIds))
+
+      if (cardIds.length <= 1) {
+        setCardOrder(cardIds);
+      } else {
+        const aktulaneid = activeIds[activeIndex]
+        let shuffled = shuffleArray(cardIds)
+
+        while (shuffled[0] === aktulaneid) {
+          shuffled = shuffleArray(cardIds)
+        }
+
+        setCardOrder(shuffled)
+      }
     }
     setFreeIndex(0)
     progress.reset()
@@ -422,93 +433,91 @@ function StudySession({ set, onClose }: { set: FlashcardSet; onClose: () => void
         <StudyMiniPanel active={randomOrderEnabled} onShuffle={handleShuffle} />
 
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-6">
-        {isCompleted ? (
-          <div className="flex flex-col items-center gap-3 text-center">
-            <span className="flex size-16 items-center justify-center rounded-3xl bg-brand/15 text-brand">
-              <Check className="size-8" />
-            </span>
-            <h2 className="text-xl font-semibold text-foreground">Ukończyłeś zestaw!</h2>
-            <p className="text-sm text-muted-foreground">
-              Umiałeś {correctCount} z {correctCount + wrongCount > 0 ? correctCount + wrongCount : total} fiszek za pierwszym razem.
-            </p>
-            <button
-              type="button"
-              onClick={onClose}
-              className="mt-2 flex h-11 items-center gap-2 rounded-xl bg-brand px-6 text-sm font-semibold text-brand-foreground shadow-sm transition-colors hover:bg-brand/90"
-            >
-              Zakończ
-            </button>
-          </div>
-        ) : !currentCard ? null : progress.mode === 'normal' ? (
-          <>
-            <FlipCard
-              flipped={flipped}
-              front={front}
-              back={back}
-              frontLabel={showTermFirst ? 'Pojęcie' : 'Definicja'}
-              backLabel={showTermFirst ? 'Definicja' : 'Pojęcie'}
-              onFlip={() => setFlipped((f) => !f)}
-            />
-
-            <SessionControls
-              trackingOn={trackingOn}
-              canGoBack={activeIndex > 0}
-              canGoForward={activeIndex < activeIds.length - 1}
-              onBack={() => goFree(-1)}
-              onForward={() => goFree(1)}
-              onWrong={() => markAndAdvance('wrong')}
-              onCorrect={() => markAndAdvance('correct')}
-            />
-          </>
-        ) : (
-          <>
-            <div className="flex min-h-64 w-full flex-col items-center justify-center gap-4 rounded-3xl border border-border bg-card p-8 text-center shadow-lg">
-              <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                <PencilLine className="size-3.5" />
-                Napisz: {showTermFirst ? 'definicję' : 'pojęcie'}
+          {isCompleted ? (
+            <div className="flex flex-col items-center gap-3 text-center">
+              <span className="flex size-16 items-center justify-center rounded-3xl bg-brand/15 text-brand">
+                <Check className="size-8" />
               </span>
-              <span className="text-xl font-semibold text-card-foreground text-balance">{front}</span>
-
-              
-              <div className="mt-2 flex h-40 w-full max-w-sm rounded-2xl border-2 border-dashed border-border bg-muted/30 text-xs text-muted-foreground">
-                <CanvasDoPisania/>
-              </div>
-
-              {revealed ? (
-                <p className="text-sm text-muted-foreground">
-                  Poprawna odpowiedź: <span className="font-semibold text-card-foreground">{back}</span>
-                </p>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setRevealed(true)}
-                  className="flex h-10 items-center gap-2 rounded-xl bg-brand px-5 text-sm font-semibold text-brand-foreground shadow-sm transition-colors hover:bg-brand/90"
-                >
-                  <Check className="size-4" />
-                  Zatwierdź
-                </button>
-              )}
+              <h2 className="text-xl font-semibold text-foreground">Ukończyłeś zestaw!</h2>
+              <p className="text-sm text-muted-foreground">
+                Umiałeś {correctCount} z {correctCount + wrongCount > 0 ? correctCount + wrongCount : total} fiszek za pierwszym razem.
+              </p>
+              <button
+                type="button"
+                onClick={onClose}
+                className="mt-2 flex h-11 items-center gap-2 rounded-xl bg-brand px-6 text-sm font-semibold text-brand-foreground shadow-sm transition-colors hover:bg-brand/90"
+              >
+                Zakończ
+              </button>
             </div>
+          ) : !currentCard ? null : progress.mode === 'normal' ? (
+            <>
+              <FlipCard
+                flipped={flipped}
+                front={front}
+                back={back}
+                frontLabel={showTermFirst ? 'Pojęcie' : 'Definicja'}
+                backLabel={showTermFirst ? 'Definicja' : 'Pojęcie'}
+                onFlip={() => setFlipped((f) => !f)}
+              />
 
-            {revealed && (
               <SessionControls
                 trackingOn={trackingOn}
                 canGoBack={activeIndex > 0}
                 canGoForward={activeIndex < activeIds.length - 1}
-                onBack={() => {
-                  goFree(-1)
-                  setRevealed(false)
-                }}
-                onForward={() => {
-                  goFree(1)
-                  setRevealed(false)
-                }}
+                onBack={() => goFree(-1)}
+                onForward={() => goFree(1)}
                 onWrong={() => markAndAdvance('wrong')}
                 onCorrect={() => markAndAdvance('correct')}
               />
-            )}
-          </>
-        )}
+            </>
+          ) : (
+            <>
+              <div className="flex min-h-64 w-full flex-col items-center justify-center gap-4 rounded-3xl border border-border bg-card p-8 text-center shadow-lg">
+                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                  <PencilLine className="size-3.5" />
+                  Napisz: {showTermFirst ? 'definicję' : 'pojęcie'}
+                </span>
+                <span className="text-xl font-semibold text-card-foreground text-balance">{front}</span>
+
+
+                <CanvasDoPisania text={front} />
+
+                {revealed ? (
+                  <p className="text-sm text-muted-foreground">
+                    Poprawna odpowiedź: <span className="font-semibold text-card-foreground">{back}</span>
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setRevealed(true)}
+                    className="flex h-10 items-center gap-2 rounded-xl bg-brand px-5 text-sm font-semibold text-brand-foreground shadow-sm transition-colors hover:bg-brand/90"
+                  >
+                    <Check className="size-4" />
+                    Zatwierdź
+                  </button>
+                )}
+              </div>
+
+              {revealed && (
+                <SessionControls
+                  trackingOn={trackingOn}
+                  canGoBack={activeIndex > 0}
+                  canGoForward={activeIndex < activeIds.length - 1}
+                  onBack={() => {
+                    goFree(-1)
+                    setRevealed(false)
+                  }}
+                  onForward={() => {
+                    goFree(1)
+                    setRevealed(false)
+                  }}
+                  onWrong={() => markAndAdvance('wrong')}
+                  onCorrect={() => markAndAdvance('correct')}
+                />
+              )}
+            </>
+          )}
         </div>
 
         <StudySidePanel
@@ -603,7 +612,7 @@ function FlipCard({
             {frontLabel}
           </span>
           <span className="text-2xl font-semibold text-card-foreground text-balance">{front}</span>
-          
+
           <span className="absolute bottom-4 text-xs text-muted-foreground">Kliknij, aby pokazać odpowiedź</span>
         </div>
 
@@ -656,7 +665,7 @@ function SessionControls({
           onClick={onCorrect}
           className="flex h-12 items-center gap-2 rounded-full bg-brand px-8 text-sm font-semibold text-brand-foreground shadow-sm transition-colors hover:bg-brand/90 border border-positive"
         >
-          <Check className="size-4 text-positive"/>
+          <Check className="size-4 text-positive" />
           Umiem
         </button>
       </div>
