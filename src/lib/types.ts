@@ -14,6 +14,18 @@ export type JSONStroke = {
   points: JSONPunkt[];
 }
 
+export type CheckRequest = {
+  target : string;
+  strokes : JSONStroke[];
+}
+
+export type CheckResponse = {
+  ok: boolean;
+  recognized: string;
+  target: string;
+  confidence: number;
+}
+
 export type User = {
   id: string
   name: string

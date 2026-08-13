@@ -179,15 +179,6 @@ const CanvasDoPisania = ({ className, onAccept, onClear, text }: CanvasDoPisania
         <div className="absolute left-2 top-2 z-10 flex flex-row gap-1">
           <button
             type="button"
-            onClick={zatwierdzCanvas}
-            aria-label="Zatwierdź pismo"
-            title="Zatwierdź"
-            className="flex size-6 items-center justify-center rounded-md bg-green-500 text-white shadow-sm transition-colors hover:bg-green-600"
-          >
-            <Check className="size-3.5" strokeWidth={3} />
-          </button>
-          <button
-            type="button"
             onClick={wyczyscCanvas}
             aria-label="Wyczyść canvas"
             title="Wyczyść"
@@ -199,6 +190,15 @@ const CanvasDoPisania = ({ className, onAccept, onClear, text }: CanvasDoPisania
 
         {/* mini panel w prawym górnym rogu - tryb powiększania (manual / auto / hover) */}
         <div className="absolute right-2 top-2 z-10 flex flex-row gap-1">
+          <button
+            type="button"
+            onClick={zatwierdzCanvas}
+            aria-label="Zatwierdź pismo"
+            title="Zatwierdź"
+            className="flex size-6 items-center justify-center rounded-md bg-green-500 text-white shadow-sm transition-colors hover:bg-green-600"
+          >
+            <Check className="size-3.5" strokeWidth={3} />
+          </button>
           <button
             type="button"
             onClick={() => {
