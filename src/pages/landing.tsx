@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { Suspense, lazy, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowRight,
@@ -13,9 +13,13 @@ import {
   Zap,
 } from 'lucide-react'
 import { BrandLogo } from '@/components/brand-logo'
-import { BrainMascot3D } from '@/components/landing/brain-mascot-3d'
 import { PreviewCarousel } from '@/components/landing/preview-carousel'
 import { SloganTicker } from '@/components/landing/slogan-ticker'
+
+// three.js + drei ładowane dopiero razem z maskotką, poza głównym bundlem
+const BrainMascot3D = lazy(() =>
+  import('@/components/landing/brain-mascot-3d').then((m) => ({ default: m.BrainMascot3D })),
+)
 
 const featureCards = [
   {
@@ -94,7 +98,11 @@ export function LandingPage() {
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden="true">
         <div className="landing-glow" ref={glowRef} />
         <div className="landing-brain-stage" ref={brainRef}>
-          <BrainMascot3D />
+          <Suspense
+            fallback={<div style={{ aspectRatio: '1 / 1', width: '100%' }} aria-hidden="true" />}
+          >
+            <BrainMascot3D />
+          </Suspense>
         </div>
         <div className="landing-orbit landing-orbit--one" />
         <div className="landing-orbit landing-orbit--two" />
