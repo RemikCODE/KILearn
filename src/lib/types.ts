@@ -66,3 +66,20 @@ export type AppNotification = {
   unread: boolean
   type: 'reminder' | 'ai' | 'system'
 }
+
+// Schowek wiedzy (pytania jawne z polskiego):
+// lektura = "folder", notatka = plik z odpowiedzią na konkretne pytanie maturalne.
+export type Lecture = {
+  id: string
+  name: string
+  createdAt: string // ISO date
+}
+
+export type KnownQuestion = {
+  id: string
+  lectureId: string // do której lektury (folderu) należy notatka
+  title: string
+  content: string // HTML treści notatki
+  createdAt: string // ISO date
+  updatedAt: string // ISO date
+}

@@ -86,8 +86,20 @@ export function DashboardPage() {
             description="Rozwiąż zadanie krok po kroku"
             accent="brand"
           />
+
+          
         </div>
       </section>
+
+      <div className="flex flex-col gap-4">
+        <ActionCard
+            to="/known-questions"
+            icon={<Sparkles className="size-4" />}
+            title="Polski - Schowek Wiedzy"
+            description="Polski schowek na pytania jawne"
+            accent="brand"
+          />
+      </div>
 
       {sets.length > 0 && (
         <section>

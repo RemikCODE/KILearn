@@ -30,9 +30,9 @@ export function AiTutorView() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6"> 
       <PageHeader
-        title="AI Tutor"
+        title=""
         description="Wklej zadanie, a AI naprowadzi Cię na rozwiązanie krok po kroku — bez podawania gotowej odpowiedzi."
         action={
           stage !== 'input' ? (
